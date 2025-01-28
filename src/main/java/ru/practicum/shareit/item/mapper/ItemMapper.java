@@ -1,37 +1,27 @@
 package ru.practicum.shareit.item.mapper;
 
-import ru.practicum.shareit.item.dto.CreateItemDTO;
-import ru.practicum.shareit.item.dto.ResponseItemDTO;
-import ru.practicum.shareit.item.dto.UpdateItemDTO;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+import ru.practicum.shareit.item.dto.ItemDTO;
 import ru.practicum.shareit.item.model.Item;
 
 import java.util.List;
 
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ItemMapper {
-    public static Item toItem(CreateItemDTO createItemDTO, Long id, Long userId) {
+    public static Item toItem(ItemDTO itemDTO) {
         return Item.builder()
-                .id(id)
-                .name(createItemDTO.getName())
-                .description(createItemDTO.getDescription())
-                .available(createItemDTO.getAvailable())
-                .owner(userId)
-                .request(createItemDTO.getRequest())
+                .id(itemDTO.getId())
+                .name(itemDTO.getName())
+                .description(itemDTO.getDescription())
+                .available(itemDTO.getAvailable())
+                .owner(itemDTO.getOwner())
+                .request(itemDTO.getRequest())
                 .build();
     }
 
-    public static Item toItem(UpdateItemDTO updateItemDTO, Long id, Long userId, Long requestorId) {
-        return Item.builder()
-                .id(id)
-                .name(updateItemDTO.getName())
-                .description(updateItemDTO.getDescription())
-                .available(updateItemDTO.getAvailable())
-                .owner(userId)
-                .request(requestorId)
-                .build();
-    }
-
-    public static ResponseItemDTO toResponseItemDTO(Item item) {
-        return ResponseItemDTO.builder()
+    public static ItemDTO toItemDTO(Item item) {
+        return ItemDTO.builder()
                 .id(item.getId())
                 .name(item.getName())
                 .description(item.getDescription())
@@ -41,7 +31,7 @@ public final class ItemMapper {
                 .build();
     }
 
-    public static List<ResponseItemDTO> toResponseItemDTOList(List<Item> items) {
-        return items.stream().map((ItemMapper::toResponseItemDTO)).toList();
+    public static List<ItemDTO> toResponseItemDTOList(List<Item> items) {
+        return items.stream().map((ItemMapper::toItemDTO)).toList();
     }
 }

@@ -1,12 +1,10 @@
 package ru.practicum.shareit.user;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import ru.practicum.shareit.user.dto.CreateUserDTO;
-import ru.practicum.shareit.user.dto.ResponseUserDTO;
-import ru.practicum.shareit.user.dto.UpdateUserDTO;
+import ru.practicum.shareit.user.dto.UserDTO;
 
 @RestController
 @RequestMapping("/users")
@@ -16,18 +14,18 @@ public final class UserController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    ResponseUserDTO createUser(@Valid @RequestBody final CreateUserDTO createUserDTO) {
-        return userService.createUser(createUserDTO);
+    UserDTO createUser(@Validated(UserDTO.Create.class) @RequestBody final UserDTO userDTO) {
+        return userService.createUser(userDTO);
     }
 
     @PatchMapping("/{userId}")
-    ResponseUserDTO updateUser(@Valid @RequestBody final UpdateUserDTO updateUserDTO,
+    UserDTO updateUser(@Validated(UserDTO.Update.class) @RequestBody final UserDTO userDTO,
                                @PathVariable final Long userId) {
-        return userService.updateUser(updateUserDTO, userId);
+        return userService.updateUser(userDTO, userId);
     }
 
     @GetMapping("/{userId}")
-    ResponseUserDTO getUser(@PathVariable final Long userId) {
+    UserDTO getUser(@PathVariable final Long userId) {
         return userService.getUser(userId);
     }
 
