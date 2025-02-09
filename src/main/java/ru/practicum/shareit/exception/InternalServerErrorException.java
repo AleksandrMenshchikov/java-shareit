@@ -1,4 +1,4 @@
-package ru.practicum.shareit.shared.exception;
+package ru.practicum.shareit.exception;
 
 import lombok.Getter;
 import org.springframework.http.HttpStatus;

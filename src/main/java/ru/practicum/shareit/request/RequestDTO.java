@@ -1,4 +1,4 @@
-package ru.practicum.shareit.request.dto;
+package ru.practicum.shareit.request;
 
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -10,5 +10,5 @@ import lombok.experimental.FieldDefaults;
 @Setter
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public final class ItemRequestDTO {
+public final class RequestDTO {
 }

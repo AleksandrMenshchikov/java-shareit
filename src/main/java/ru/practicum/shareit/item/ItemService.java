@@ -2,83 +2,120 @@ package ru.practicum.shareit.item;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.booking.Booking;
+import ru.practicum.shareit.booking.BookingRepository;
+import ru.practicum.shareit.exception.BadRequestException;
+import ru.practicum.shareit.exception.NotFoundException;
+import ru.practicum.shareit.item.dto.CommentDTO;
 import ru.practicum.shareit.item.dto.ItemDTO;
+import ru.practicum.shareit.item.dto.ResponseItemDTO;
+import ru.practicum.shareit.item.mapper.CommentMapper;
 import ru.practicum.shareit.item.mapper.ItemMapper;
+import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.shared.exception.BadRequestException;
-import ru.practicum.shareit.shared.exception.NotFoundException;
+import ru.practicum.shareit.item.repository.CommentRepository;
+import ru.practicum.shareit.item.repository.ItemRepository;
+import ru.practicum.shareit.request.Request;
+import ru.practicum.shareit.request.RequestRepository;
+import ru.practicum.shareit.user.User;
 import ru.practicum.shareit.user.UserRepository;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public final class ItemService {
+public class ItemService {
     private final UserRepository userRepository;
     private final ItemRepository itemRepository;
+    private final RequestRepository requestRepository;
+    private final CommentRepository commentRepository;
+    private final BookingRepository bookingRepository;
 
+    @Transactional
     public ItemDTO createItem(ItemDTO itemDTO, Long userId) {
-        userRepository.findById(userId).orElseThrow(() ->
+        User user = userRepository.findById(userId).orElseThrow(() ->
                 new NotFoundException(String.format("User with id '%d' not found", userId)));
-        Long id = itemRepository.generateId();
-        itemDTO.setId(id);
-        itemDTO.setOwner(userId);
-        Item item = ItemMapper.toItem(itemDTO);
-        itemRepository.insert(item, id);
-        return ItemMapper.toItemDTO(item);
+
+        Long requestId = itemDTO.getRequestId();
+
+        Request request = null;
+        if (requestId != null) {
+            request = requestRepository.findById(requestId).orElseThrow(() ->
+                    new NotFoundException(String.format("Request with id '%d' not found", requestId)));
+        }
+
+        Item saved = itemRepository.save(ItemMapper.toNewItem(itemDTO, user, request));
+        return ItemMapper.toItemDTO(saved);
     }
 
+    @Transactional
     public ItemDTO updateItem(ItemDTO itemDTO, Long userId, Long itemId) {
         userRepository.findById(userId).orElseThrow(() ->
                 new NotFoundException(String.format("User with id '%d' not found", userId)));
-        Item oldItem = itemRepository.findById(itemId).orElseThrow(() ->
+        Item item = itemRepository.findById(itemId).orElseThrow(() ->
                 new NotFoundException(String.format("Item with id '%d' not found", itemId)));
 
-        if (!oldItem.getOwner().equals(userId)) {
-            throw new BadRequestException(String.format("User with id '%d' is not owned by '%d'", userId, itemId));
-        }
-
         if (itemDTO.getName() == null || itemDTO.getName().isBlank()) {
-            itemDTO.setName(oldItem.getName());
+            itemDTO.setName(item.getName());
         }
 
         if (itemDTO.getDescription() == null || itemDTO.getDescription().isBlank()) {
-            itemDTO.setDescription(oldItem.getDescription());
+            itemDTO.setDescription(item.getDescription());
         }
 
         if (itemDTO.getAvailable() == null) {
-            itemDTO.setAvailable(oldItem.getAvailable());
+            itemDTO.setAvailable(item.getIsAvailable());
         }
 
-        itemDTO.setId(oldItem.getId());
-        itemDTO.setOwner(oldItem.getOwner());
-        itemDTO.setRequest(oldItem.getRequest());
-        Item item = ItemMapper.toItem(itemDTO);
-        itemRepository.updateById(itemId, item);
-        return ItemMapper.toItemDTO(item);
+        Item saved = itemRepository.save(ItemMapper.toItem(itemDTO, itemId, item.getOwner(), item.getRequest()));
+        return ItemMapper.toItemDTO(saved);
     }
 
-    public ItemDTO getItem(Long itemId) {
-        Item item = itemRepository.findById(itemId).orElseThrow(() -> new NotFoundException(String.format("Item with id '%d' not found", itemId)));
-        return ItemMapper.toItemDTO(item);
+    @Transactional(readOnly = true)
+    public ResponseItemDTO getItem(Long userId, Long itemId) {
+        User user = userRepository.findById(userId).orElseThrow(() ->
+                new NotFoundException(String.format("User with id '%d' not found", userId)));
+        Item item = itemRepository.findById(itemId).orElseThrow(() ->
+                new NotFoundException(String.format("Item with id '%d' not found", itemId)));
+        List<Comment> comments = commentRepository.findCommentByItem_Id(itemId);
+        List<CommentDTO> commentDTOList = CommentMapper.toCommentDTOList(comments, itemId, user);
+        return ItemMapper.toResponseItemDTO(item, commentDTOList);
     }
 
+    @Transactional(readOnly = true)
     public List<ItemDTO> getItems(Long userId) {
         userRepository.findById(userId).orElseThrow(() ->
                 new NotFoundException(String.format("User with id '%d' not found", userId)));
-        List<Item> list = itemRepository.getData().values().stream().filter((item) -> item.getOwner().equals(userId)).toList();
-        return ItemMapper.toResponseItemDTOList(list);
+        List<Item> items = itemRepository.findItemsByOwner_Id(userId);
+        return ItemMapper.toItemDTOList(items);
     }
 
+    @Transactional(readOnly = true)
     public List<ItemDTO> search(String text) {
         if (text.isBlank()) {
             return new ArrayList<>();
         }
 
-        List<Item> list = itemRepository.getData().values().stream()
-                .filter((item) -> item.getAvailable() && item.getName().toUpperCase().contains(text.toUpperCase())
-                                  || item.getDescription().toUpperCase().contains(text.toUpperCase())).toList();
-        return ItemMapper.toResponseItemDTOList(list);
+        List<Item> list = itemRepository.findAllByNameContainingIgnoreCaseAndIsAvailableOrDescriptionIgnoreCaseAndIsAvailable(text, true, text, true);
+        return ItemMapper.toItemDTOList(list);
+    }
+
+    @Transactional
+    public CommentDTO createComment(CommentDTO commentDTO, Long userId, Long itemId) {
+        User user = userRepository.findById(userId).orElseThrow(() ->
+                new NotFoundException(String.format("User with id '%d' not found", userId)));
+        List<Booking> list = bookingRepository.findBookingByBooker_IdAndItem_IdAndEndDateBefore(userId, itemId, LocalDateTime.now());
+
+        if (list.isEmpty()) {
+            throw new BadRequestException("A comment can only be left by the user who rented the item, and only after the rental period has ended");
+        }
+
+        Item item = itemRepository.findById(itemId).orElseThrow(() -> new NotFoundException(String.format("Item with id '%d' not found", itemId)));
+
+        Comment saved = commentRepository.save(CommentMapper.toNewComment(commentDTO, item, user));
+        return CommentMapper.toCommentDTO(saved, itemId, user);
     }
 }
