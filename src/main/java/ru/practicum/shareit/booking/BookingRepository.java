@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface BookingRepository extends JpaRepository<Booking, Long> {
-    List<Booking> findAllByBooker_Id(Long bookerId);
+    List<Booking> findBookingsByBooker_Id(Long bookerId);
 
     List<Booking> findAllByBookerIdAndStatus(Long bookerId, BookingStatus status);
 

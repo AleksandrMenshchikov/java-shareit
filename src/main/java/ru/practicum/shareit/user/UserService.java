@@ -52,7 +52,6 @@ public class UserService {
         return UserMapper.toUserDTO(saved);
     }
 
-    @Transactional(readOnly = true)
     public UserDTO getUser(Long id) {
         User user = userRepository.findById(id).orElseThrow(() ->
                 new NotFoundException(String.format("User with id %s not found", id)));

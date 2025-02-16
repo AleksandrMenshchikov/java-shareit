@@ -74,7 +74,6 @@ public class ItemService {
         return ItemMapper.toItemDTO(saved);
     }
 
-    @Transactional(readOnly = true)
     public ResponseItemDTO getItem(Long userId, Long itemId) {
         User user = userRepository.findById(userId).orElseThrow(() ->
                 new NotFoundException(String.format("User with id '%d' not found", userId)));
@@ -85,7 +84,6 @@ public class ItemService {
         return ItemMapper.toResponseItemDTO(item, commentDTOList);
     }
 
-    @Transactional(readOnly = true)
     public List<ItemDTO> getItems(Long userId) {
         userRepository.findById(userId).orElseThrow(() ->
                 new NotFoundException(String.format("User with id '%d' not found", userId)));
@@ -93,13 +91,12 @@ public class ItemService {
         return ItemMapper.toItemDTOList(items);
     }
 
-    @Transactional(readOnly = true)
     public List<ItemDTO> search(String text) {
         if (text.isBlank()) {
             return new ArrayList<>();
         }
 
-        List<Item> list = itemRepository.findAllByNameContainingIgnoreCaseAndIsAvailableOrDescriptionIgnoreCaseAndIsAvailable(text, true, text, true);
+        List<Item> list = itemRepository.findAllByNameAndAvailableOrDescriptionAndAvailable(text, true, text, true);
         return ItemMapper.toItemDTOList(list);
     }
 

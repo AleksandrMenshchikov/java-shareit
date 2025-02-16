@@ -60,7 +60,6 @@ public class BookingService {
         return BookingMapper.toResponseBookingDTO(booking);
     }
 
-    @Transactional(readOnly = true)
     public ResponseBookingDTO getBookingById(Long userId, Long bookingId) {
         Booking booking = bookingRepository.findById(bookingId).orElseThrow(() ->
                 new NotFoundException(String.format("Booking with id '%d' not found", bookingId)));
@@ -74,13 +73,12 @@ public class BookingService {
         }
     }
 
-    @Transactional(readOnly = true)
     public List<ResponseBookingDTO> getUserBookings(Long userId, String state) {
         userRepository.findById(userId).orElseThrow(() ->
                 new NotFoundException(String.format("User with id '%d' not found", userId)));
 
         if (state == null) {
-            List<Booking> bookings = bookingRepository.findAllByBooker_Id(userId);
+            List<Booking> bookings = bookingRepository.findBookingsByBooker_Id(((userId)));
             return BookingMapper.toResponseBookingDTOList(bookings);
         }
 
@@ -94,7 +92,6 @@ public class BookingService {
         return new ArrayList<>();
     }
 
-    @Transactional(readOnly = true)
     public List<ResponseBookingDTO> getOwnerBookings(Long userId, String state) {
         userRepository.findById(userId).orElseThrow(() ->
                 new NotFoundException(String.format("User with id '%d' not found", userId)));

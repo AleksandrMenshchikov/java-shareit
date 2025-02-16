@@ -12,10 +12,10 @@ import ru.practicum.shareit.user.User;
 public final class Request {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    Long id;
+    private Long id;
 
-    String description; // текст запроса, содержащий описание требуемой вещи
+    private String description; // текст запроса, содержащий описание требуемой вещи
 
     @ManyToOne
-    User requestor; // пользователь, создавший запрос
+    private User requestor; // пользователь, создавший запрос
 }
