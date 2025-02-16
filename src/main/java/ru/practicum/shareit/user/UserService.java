@@ -2,58 +2,54 @@ package ru.practicum.shareit.user;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import ru.practicum.shareit.shared.exception.ConflictException;
-import ru.practicum.shareit.shared.exception.InternalServerErrorException;
-import ru.practicum.shareit.shared.exception.NotFoundException;
-import ru.practicum.shareit.user.dto.UserDTO;
-import ru.practicum.shareit.user.mapper.UserMapper;
-import ru.practicum.shareit.user.model.User;
+import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.exception.ConflictException;
+import ru.practicum.shareit.exception.NotFoundException;
 
-import java.util.Optional;
+import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
-public final class UserService {
+public class UserService {
     private final UserRepository userRepository;
 
+    @Transactional
     public UserDTO createUser(UserDTO userDTO) {
-        Optional<User> userOptional = userRepository.findByEmail(userDTO.getEmail());
+        List<User> users = userRepository.findUserByEmail(userDTO.getEmail().trim());
 
-        if (userOptional.isPresent()) {
+        if (!users.isEmpty()) {
             throw new ConflictException(String.format("User with email %s already exists", userDTO.getEmail()));
         }
 
-        Long id = userRepository.generateId();
-        userDTO.setId(id);
-        User user = UserMapper.toUser(userDTO);
-        userRepository.insert(user, id);
-        return UserMapper.toUserDTO(user);
+        User saved = userRepository.save(UserMapper.toNewUser(userDTO));
+        return UserMapper.toUserDTO(saved);
     }
 
+    @Transactional
     public UserDTO updateUser(UserDTO userDTO, Long id) {
-        User oldUser = userRepository.findById(id).orElseThrow(() ->
+        User user = userRepository.findById(id).orElseThrow(() ->
                 new NotFoundException(String.format("User with id %s not found", id)));
 
-        if (userDTO.getEmail() == null || oldUser.getEmail().equals(userDTO.getEmail())) {
-            userDTO.setEmail(oldUser.getEmail());
+        if (userDTO.getEmail() != null && !userDTO.getEmail().isBlank()) {
+            String email = userDTO.getEmail().trim();
+            List<User> users = userRepository.findUserByEmail(email);
+
+            if (!users.isEmpty()
+                && !Objects.equals(users.getFirst().getId(), user.getId())
+                && Objects.equals(users.getFirst().getEmail(), email)) {
+                throw new ConflictException(String.format("User with email %s already exists", email));
+            }
         } else {
-            userRepository.findByEmail(userDTO.getEmail()).ifPresent((user) -> {
-                if (user.getEmail().equals(userDTO.getEmail())) {
-                    throw new ConflictException(String.format("User with email %s already exists", userDTO.getEmail()));
-                }
-            });
+            userDTO.setEmail(user.getEmail());
         }
 
         if (userDTO.getName() == null || userDTO.getName().isBlank()) {
-            userDTO.setName(oldUser.getName());
+            userDTO.setName(user.getName());
         }
 
-        userDTO.setId(id);
-        User user = UserMapper.toUser(userDTO);
-        userRepository.updateById(id, user);
-        User newUser = userRepository.findById(id).orElseThrow(() ->
-                new InternalServerErrorException(String.format("User with id %s not found", id)));
-        return UserMapper.toUserDTO(newUser);
+        User saved = userRepository.save(UserMapper.toUser(userDTO, id));
+        return UserMapper.toUserDTO(saved);
     }
 
     public UserDTO getUser(Long id) {
@@ -62,7 +58,7 @@ public final class UserService {
         return UserMapper.toUserDTO(user);
     }
 
-
+    @Transactional
     public void deleteUser(Long id) {
         userRepository.findById(id).orElseThrow(() ->
                 new NotFoundException(String.format("User with id %s not found", id)));

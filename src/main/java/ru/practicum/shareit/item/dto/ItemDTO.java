@@ -1,32 +1,33 @@
 package ru.practicum.shareit.item.dto;
 
-import jakarta.validation.constraints.*;
-import lombok.AccessLevel;
-import lombok.Builder;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.experimental.FieldDefaults;
 
 @Getter
 @Setter
-@Builder
-@FieldDefaults(level = AccessLevel.PRIVATE)
-public class ItemDTO {
+public final class ItemDTO {
+    private Long id;
+
+    @NotBlank(groups = Create.class)
+    private String name;
+
+    @NotBlank(groups = Create.class)
+    private String description;
+
+    @NotNull(groups = Create.class)
+    private Boolean available;
+
+    private Long ownerId;
+
+    @Positive(groups = Create.class)
+    private Long requestId;
+
     public interface Create {
     }
 
     public interface Update {
     }
-
-    @Null
-    Long id;
-    @NotBlank(groups = Create.class)
-    String name;
-    @NotBlank(groups = Create.class)
-    String description;
-    @NotNull(groups = Create.class)
-    Boolean available;
-    Long owner;
-    @Positive(groups = Create.class)
-    Long request;
 }

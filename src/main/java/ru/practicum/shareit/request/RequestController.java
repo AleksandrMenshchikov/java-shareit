@@ -5,5 +5,5 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping(path = "/requests")
-public final class ItemRequestController {
+public final class RequestController {
 }

@@ -1,4 +1,4 @@
-package ru.practicum.shareit.shared.exception;
+package ru.practicum.shareit.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.Builder;
